@@ -1,0 +1,109 @@
+Okta Client SDK for .NET
+Copyright 2026 Okta, Inc.
+
+This product includes software developed at Okta, Inc. (https://www.okta.com/).
+
+--------------------------------------------------------------------------------
+
+This product includes the following third-party components:
+
+================================================================================
+Components licensed under the Apache License, Version 2.0
+================================================================================
+
+Apache License, Version 2.0
+https://www.apache.org/licenses/LICENSE-2.0
+
+  xunit
+  Version: 2.9.3
+  Copyright (C) .NET Foundation
+  https://github.com/xunit/xunit
+
+  xunit.runner.visualstudio
+  Version: 3.1.4
+  Copyright (C) .NET Foundation
+  https://github.com/xunit/visualstudio.xunit
+
+================================================================================
+Components licensed under the MIT License
+================================================================================
+
+MIT License
+https://opensource.org/licenses/MIT
+
+  Microsoft.Extensions.Configuration.Abstractions
+  Version: 8.0.0
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.Configuration
+  Version: 8.0.0
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.Configuration.Binder
+  Version: 8.0.2
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.Configuration.Json
+  Version: 8.0.1
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.DependencyInjection
+  Version: 8.0.1
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.Http
+  Version: 8.0.1
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.Extensions.Logging
+  Version: 8.0.1
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Microsoft.IdentityModel.JsonWebTokens
+  Version: 8.14.0
+  Copyright (c) Microsoft Corporation
+  https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet
+
+  Microsoft.NET.Test.Sdk
+  Version: 17.14.1
+  Copyright (c) Microsoft Corporation
+  https://github.com/microsoft/vstest
+
+  Microsoft.Playwright
+  Version: 1.52.0
+  Copyright (c) Microsoft Corporation
+  https://github.com/microsoft/playwright-dotnet
+
+  System.Security.Cryptography.ProtectedData
+  Version: 8.0.0
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  System.Text.Json
+  Version: 8.0.6
+  Copyright (c) Microsoft Corporation
+  https://github.com/dotnet/runtime
+
+  Ace4896.DBus.Services.Secrets
+  Version: 1.6.0
+  Copyright (c) Jon Pacheco, 2023
+  https://github.com/Ace4896/DBus.Services.Secrets
+
+================================================================================
+Components licensed under the BSD 3-Clause License
+================================================================================
+
+BSD 3-Clause License
+https://opensource.org/licenses/BSD-3-Clause
+
+  NSubstitute
+  Version: 5.0.0
+  Copyright (c) 2009 Anthony Egerton and Peter Waldschmidt
+  https://github.com/nsubstitute/NSubstitute

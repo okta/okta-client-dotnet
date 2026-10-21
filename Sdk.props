@@ -1,0 +1,62 @@
+<Project>
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- NuGet package metadata shared across all SDK packages. Per-package metadata
+         (PackageId, Description) lives on the individual project files. -->
+    <Authors>Okta</Authors>
+    <Company>Okta, Inc.</Company>
+    <!-- Fixed year so package metadata is bit-identical across rebuilds; bump manually
+         when the copyright year should advance for a new release. -->
+    <Copyright>Copyright (c) 2026 Okta, Inc.</Copyright>
+    <Product>Okta .NET SDK</Product>
+    <PackageProjectUrl>https://github.com/okta/okta-client-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/okta/okta-client-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>okta;oauth2;oidc;authentication;openid-connect;pkce</PackageTags>
+
+    <!-- Reproducible builds: bit-identical output for the same input. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'true' or '$(GITHUB_ACTIONS)' == 'true' or '$(CIRCLECI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Source Link: symbols point back to GitHub for step-through debugging. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pack the root README and LICENSE into every package. -->
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <Target Name="GenerateVersionInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_VersionInfoContent>
+namespace $(RootNamespace)
+{
+    internal static class VersionInfo
+    {
+        public const string Version = "$(Version)"%3B
+    }
+}
+      </_VersionInfoContent>
+    </PropertyGroup>
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)VersionInfo.g.cs"
+      Lines="$(_VersionInfoContent)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)VersionInfo.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

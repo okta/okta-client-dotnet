@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\Sdk.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>0.1.0</Version>
+
+    <PackageId>Okta.OAuth2</PackageId>
+    <Title>Okta OAuth2 for .NET</Title>
+    <Description>OAuth2 and OIDC authentication flows for the Okta .NET SDK: Authorization Code with PKCE, Device Authorization, Resource Owner, Session Logout, and Token Exchange.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Okta.AuthFoundation\Okta.AuthFoundation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Okta.Client.Sdk.Tests" />
+  </ItemGroup>
+
+</Project>

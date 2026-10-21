@@ -1,0 +1,117 @@
+version: 2.1
+
+orbs:
+  general-platform-helpers: atko-eng/eng-services-platform-helpers-general@6
+  win-helpers: atko-eng/eng-rps-platform-windows@4
+  okta-universal: atko-eng/eng-services-rps-universal@2
+
+jobs:
+  build:
+    machine: true
+    resource_class: atko-eng/windows-server-2025
+    environment:
+      CIRCLE_CI: True
+    steps:
+      - checkout
+      - run:
+          name: "Clean NuGet config"
+          command: |
+            $nugetConfig = "$env:APPDATA\NuGet\NuGet.Config"
+            if (Test-Path $nugetConfig) {
+              Remove-Item $nugetConfig -Force
+              Write-Host "Removed stale NuGet.Config"
+            } else {
+              Write-Host "No stale NuGet.Config found"
+            }
+          shell: powershell.exe
+      - run:
+          name: "Install required components"
+          command: |
+            choco install -y dotnet-8.0-sdk
+      - run:
+          name: Restore NuGet packages
+          command: dotnet restore
+      - run:
+          name: Build solution
+          command: dotnet build --configuration Release --no-restore
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+
+  test:
+    machine: true
+    resource_class: atko-eng/windows-server-2025
+    environment:
+      CIRCLE_CI: True
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Install required components"
+          command: |
+            choco install -y dotnet-8.0-sdk
+      - run:
+          name: Run unit tests
+          command: dotnet test Okta.Client.Sdk.Tests/Okta.Client.Sdk.Tests.csproj --no-build --configuration Release --logger:"trx;LogFileName=test_results.trx" -- RunConfiguration.TreatNoTestsAsError=true
+
+  pack:
+    machine: true
+    resource_class: atko-eng/windows-server-2025
+    environment:
+      CIRCLE_CI: True
+      ARTIFACTORY_URL: "https://artifacts.aue1e.internal/artifactory"
+    steps:
+      - attach_workspace:
+          at: .
+      - okta-universal/initialize-windows:
+          artifactory_url: "artifacts.aue1e.internal"
+      - win-helpers/choco:
+          package: dotnet-8.0-sdk
+      - run:
+          name: "Pack Okta.AuthFoundation"
+          command: |
+            dotnet pack ./Okta.AuthFoundation/Okta.AuthFoundation.csproj --configuration Release --no-build --output ./artifacts
+      - run:
+          name: "Pack Okta.OAuth2"
+          command: |
+            dotnet pack ./Okta.OAuth2/Okta.OAuth2.csproj --configuration Release --no-build --output ./artifacts
+      - win-helpers/nuget-push-to-artifactory:
+          nupkg-directory: "./artifacts"
+          skip-duplicates: 'true'
+
+  snyk-scan:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - attach_workspace:
+          at: .
+      - general-platform-helpers/step-load-dependencies
+      - general-platform-helpers/step-run-snyk-monitor:
+          scan-all-projects: true
+          skip-unresolved: false
+          run-on-non-main: true
+          detection-depth: 4
+
+
+workflows:
+  "Build, Test & Scan":
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - pack:
+          requires:
+            - test
+          filters:
+            branches:
+              only: /^release-.+$/
+      - general-platform-helpers/job-snyk-prepare:
+          name: prepare-snyk
+          requires:
+            - build
+      - snyk-scan:
+          name: execute-snyk
+          requires:
+            - prepare-snyk

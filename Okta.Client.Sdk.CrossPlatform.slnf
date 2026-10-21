@@ -1,0 +1,15 @@
+{
+  "solution": {
+    "path": "Okta.Client.Sdk.sln",
+    "projects": [
+      "Okta.AuthFoundation\\Okta.AuthFoundation.csproj",
+      "Okta.OAuth2\\Okta.OAuth2.csproj",
+      "Samples\\ResourceOwnerFlowSample\\ResourceOwnerFlowSample.csproj",
+      "Samples\\ConsoleWebRedirectSample\\ConsoleWebRedirectSample.csproj",
+      "Okta.Client.Sdk.Tests\\Okta.Client.Sdk.Tests.csproj",
+      "Samples\\DeviceAuthCodeFlowSample\\DeviceAuthCodeFlowSample.csproj",
+      "Samples\\DeviceSsoSample\\DeviceSsoSample.csproj",
+      "Okta.Client.Sdk.E2ETests\\Okta.Client.Sdk.E2ETests.csproj"
+    ]
+  }
+}
