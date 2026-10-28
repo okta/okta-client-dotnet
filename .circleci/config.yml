@@ -1,84 +1,74 @@
 version: 2.1
 
 orbs:
-  general-platform-helpers: atko-eng/eng-services-platform-helpers-general@6
-  win-helpers: atko-eng/eng-rps-platform-windows@4
-  okta-universal: atko-eng/eng-services-rps-universal@2
+  windows: circleci/windows@5.0
+  general-platform-helpers: okta/general-platform-helpers@1.9.4
 
 jobs:
-  build:
-    machine: true
-    resource_class: atko-eng/windows-server-2025
+  build-windows:
+    description: Build and test on Windows
+    executor:
+      name: windows/default
     environment:
       CIRCLE_CI: True
     steps:
       - checkout
-      - run:
-          name: "Clean NuGet config"
-          command: |
-            $nugetConfig = "$env:APPDATA\NuGet\NuGet.Config"
-            if (Test-Path $nugetConfig) {
-              Remove-Item $nugetConfig -Force
-              Write-Host "Removed stale NuGet.Config"
-            } else {
-              Write-Host "No stale NuGet.Config found"
-            }
-          shell: powershell.exe
       - run:
           name: "Install required components"
           command: |
             choco install -y dotnet-8.0-sdk
       - run:
           name: Restore NuGet packages
-          command: dotnet restore
+          command: dotnet restore Okta.Client.Sdk.sln
       - run:
           name: Build solution
-          command: dotnet build --configuration Release --no-restore
+          command: dotnet build Okta.Client.Sdk.sln --configuration Release --no-restore
+      - run:
+          name: Run unit tests
+          command: dotnet test Okta.Client.Sdk.Tests/Okta.Client.Sdk.Tests.csproj --no-build --configuration Release --logger:"junit;LogFilePath=TestResults/results.xml" -- RunConfiguration.TreatNoTestsAsError=true
+      - store_test_results:
+          path: Okta.Client.Sdk.Tests/TestResults
       - persist_to_workspace:
           root: .
           paths:
             - .
 
-  test:
-    machine: true
-    resource_class: atko-eng/windows-server-2025
+  build-linux:
+    description: Build and test on Linux
+    docker:
+      - image: mcr.microsoft.com/dotnet/sdk:8.0
+    resource_class: large
     environment:
       CIRCLE_CI: True
     steps:
-      - attach_workspace:
-          at: .
+      - checkout
       - run:
-          name: "Install required components"
+          name: "Install D-Bus and keyring daemon"
           command: |
-            choco install -y dotnet-8.0-sdk
+            apt-get update
+            apt-get install -y dbus dbus-x11 gnome-keyring
+      - run:
+          name: Restore NuGet packages
+          command: dotnet restore Okta.Client.Sdk.CrossPlatform.slnf
+      - run:
+          name: Build solution
+          command: dotnet build Okta.Client.Sdk.CrossPlatform.slnf --configuration Release --no-restore
       - run:
           name: Run unit tests
-          command: dotnet test Okta.Client.Sdk.Tests/Okta.Client.Sdk.Tests.csproj --no-build --configuration Release --logger:"trx;LogFileName=test_results.trx" -- RunConfiguration.TreatNoTestsAsError=true
-
-  pack:
-    machine: true
-    resource_class: atko-eng/windows-server-2025
-    environment:
-      CIRCLE_CI: True
-      ARTIFACTORY_URL: "https://artifacts.aue1e.internal/artifactory"
-    steps:
-      - attach_workspace:
-          at: .
-      - okta-universal/initialize-windows:
-          artifactory_url: "artifacts.aue1e.internal"
-      - win-helpers/choco:
-          package: dotnet-8.0-sdk
-      - run:
-          name: "Pack Okta.AuthFoundation"
+          # Some tests need a session bus and an unlocked default collection.
+          # The unlock password must be non-empty, or the daemon serves only
+          # its in-memory collection and the "default" alias stays unresolved.
           command: |
-            dotnet pack ./Okta.AuthFoundation/Okta.AuthFoundation.csproj --configuration Release --no-build --output ./artifacts
-      - run:
-          name: "Pack Okta.OAuth2"
-          command: |
-            dotnet pack ./Okta.OAuth2/Okta.OAuth2.csproj --configuration Release --no-build --output ./artifacts
-      - win-helpers/nuget-push-to-artifactory:
-          nupkg-directory: "./artifacts"
-          skip-duplicates: 'true'
+            dbus-run-session -- bash -c '
+              eval $(printf "ci" | gnome-keyring-daemon --unlock --components=secrets)
+              export GNOME_KEYRING_CONTROL
+              dotnet test Okta.Client.Sdk.Tests/Okta.Client.Sdk.Tests.csproj \
+                --no-build --configuration Release \
+                --logger:"junit;LogFilePath=TestResults/results.xml" \
+                -- RunConfiguration.TreatNoTestsAsError=true
+            '
+      - store_test_results:
+          path: Okta.Client.Sdk.Tests/TestResults
 
   snyk-scan:
     docker:
@@ -93,25 +83,14 @@ jobs:
           run-on-non-main: true
           detection-depth: 4
 
-
 workflows:
   "Build, Test & Scan":
     jobs:
-      - build
-      - test:
-          requires:
-            - build
-      - pack:
-          requires:
-            - test
-          filters:
-            branches:
-              only: /^release-.+$/
-      - general-platform-helpers/job-snyk-prepare:
-          name: prepare-snyk
-          requires:
-            - build
+      - build-windows
+      - build-linux
       - snyk-scan:
           name: execute-snyk
+          context:
+            - static-analysis
           requires:
-            - prepare-snyk
+            - build-windows
