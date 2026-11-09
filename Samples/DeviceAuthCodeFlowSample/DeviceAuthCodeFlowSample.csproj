@@ -6,7 +6,6 @@
     <RootNamespace>Okta.Client.Sdk.Samples.DeviceAuthCodeFlow</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

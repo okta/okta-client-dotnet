@@ -6,7 +6,6 @@
     <RootNamespace>Okta.Client.Sdk.Samples.ConsoleWebRedirect</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>

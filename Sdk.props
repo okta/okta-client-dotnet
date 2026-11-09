@@ -2,6 +2,9 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
+    <!-- Bump the version here, not in the project files. -->
+    <Version>0.1.0</Version>
+
     <!-- NuGet package metadata shared across all SDK packages. Per-package metadata
          (PackageId, Description) lives on the individual project files. -->
     <Authors>Okta</Authors>
