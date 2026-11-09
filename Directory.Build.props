@@ -1,6 +1,10 @@
 <Project>
 
   <PropertyGroup>
+    <!-- Nothing ships unless it opts in. Each shipping library sets IsPackable
+         alongside its PackageId. -->
+    <IsPackable>false</IsPackable>
+
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>

@@ -6,8 +6,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.1.0</Version>
-
+    <IsPackable>true</IsPackable>
     <PackageId>Okta.AuthFoundation</PackageId>
     <Title>Okta AuthFoundation for .NET</Title>
     <Description>Foundational OAuth2/OIDC types for the Okta .NET SDK: HTTP client, token and credential management, JWT and JWK validation, and encrypted local token storage.</Description>
