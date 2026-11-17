@@ -1,0 +1,186 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration for okta-client-dotnet.
+#
+# Design notes:
+#   - Mechanical checks (StyleCop.Analyzers, the .NET analyzers at
+#     latest-recommended, EnforceCodeStyleInBuild) already cover the deterministic
+#     part of review. CodeRabbit's job is judgment calls: token storage and crypto
+#     handling, PKCE and issuer validation, breaking public-API changes, and async
+#     correctness.
+#   - Every path rule below is labeled with a Review Tier (Very High/High/Medium/
+#     Very Low) so reviewers can see which findings need deeper attention.
+#   - Path-instruction rules are ordered specific-first.
+
+language: "en-US"
+early_access: false
+
+tone_instructions: >-
+  Review a .NET OAuth2/OIDC authentication SDK. Focus on security (token
+  storage, crypto, PKCE, issuer and token validation), async and thread-safety
+  correctness, and public-API breakage. Skip issues already caught by StyleCop
+  or the .NET analyzers. Include the Review Tier.
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  review_details: true
+
+  auto_review:
+    enabled: false
+    drafts: false
+
+  path_filters:
+    - "!**/bin/**"
+    - "!**/obj/**"
+    - "!**/TestResults/**"
+    - "!.vs/**"
+    - "!.idea/**"
+    - "!.vscode/**"
+    - "!**/*.user"
+
+  path_instructions:
+    # ---------------------------------------------------------------
+    # Very High — token persistence, crypto, validation, public API
+    # ---------------------------------------------------------------
+    - path: "Okta.AuthFoundation/TokenManagement/*TokenStorage*"
+      instructions: |
+        Review Tier: Very High. Persistence of tokens at rest, one implementation
+        per platform.
+        Flag: (1) any change to the encryption used or to the on-disk format,
+        including anything that would fail to read tokens written by an earlier
+        version, (2) secrets or token values reaching logs, exception messages, or
+        serialized metadata, (3) file permissions widened beyond owner-only,
+        (4) a platform API failure surfacing as something other than a clear
+        exception, (5) claims persisted when IncludeClaims is not enabled.
+
+    - path: "Okta.AuthFoundation/TokenManagement/{Credential,CredentialCoordinator,Token,TokenContext,TokenMetadata,DefaultCredentialDataSource}.cs"
+      instructions: |
+        Review Tier: Very High. Credential lifecycle and the in-memory cache.
+        Flag: (1) CoalescedResult misuse that could let concurrent refreshes issue
+        duplicate token requests or cache a failure, (2) lost or unbalanced
+        SemaphoreSlim acquisition, including paths that can throw while holding it,
+        (3) token or claim values in ToString or in serialized output,
+        (4) mutation of a Token after construction.
+
+    - path: "Okta.AuthFoundation/JwtSecurity/**"
+      instructions: |
+        Review Tier: Very High. ID token, JWK, and token hash validation.
+        Flag any weakening or short-circuiting of a validation check: issuer,
+        audience, nonce, expiry and clock skew, signature algorithm restrictions,
+        or the at_hash/c_hash comparison. A validation that returns success when a
+        required claim is absent is a finding, not a convenience. Flag any
+        non-constant-time comparison of a hash or signature.
+
+    - path: "Okta.AuthFoundation/OAuth2/{OAuth2Client,OAuth2ClientConfiguration,OktaConfiguration}.cs"
+      instructions: |
+        Review Tier: Very High. The authorization server client and its
+        configuration.
+        Flag: (1) discovery document values trusted without being checked against
+        the configured issuer, (2) URL construction by string concatenation rather
+        than structurally, (3) credentials or tokens placed in a query string
+        instead of a request body, (4) configuration loading that widens the file
+        search path or silently accepts a malformed document.
+
+    - path: "Okta.AuthFoundation/OAuth2/*{Authentication,Jwt}*.cs"
+      instructions: |
+        Review Tier: Very High. Client authentication, including private key JWT.
+        Flag any client secret or signing key that could be logged, serialized, or
+        persisted, and any assertion whose lifetime or audience is not scoped.
+
+    # ---------------------------------------------------------------
+    # High — flows, HTTP layer, CI, build and version configuration
+    # ---------------------------------------------------------------
+    - path: "Okta.OAuth2/Flows/**"
+      instructions: |
+        Review Tier: High. Authentication flows.
+        Flag: (1) PKCE code verifier, state, or nonce generated with a
+        non-cryptographic RNG or with insufficient entropy, (2) state or nonce not
+        compared on resume, (3) flow state that is mutated across start and resume
+        without synchronization, (4) a CancellationToken accepted but not passed
+        down, (5) inconsistency with how sibling flows wrap results.
+
+    - path: "Okta.AuthFoundation/Http/**"
+      instructions: |
+        Review Tier: High. HTTP abstraction shared by every request.
+        Flag mutation of shared HttpClient state, in particular default request
+        headers, which affects concurrent callers. Flag response bodies logged
+        without redaction.
+
+    - path: ".circleci/config.yml"
+      instructions: |
+        Review Tier: High. Removing or weakening a required job (build-windows,
+        build-linux, snyk-scan) should be called out explicitly. Adding a job is
+        generally fine. Note that the two build jobs cover different platform code
+        paths, so dropping either reduces coverage rather than duplicating it.
+
+    - path: "{Sdk.props,Directory.Build.props,stylecop.json,**/*.csproj}"
+      instructions: |
+        Review Tier: High if it changes the published package, the target
+        framework, or what the analyzers enforce; Medium otherwise.
+        Flag any dependency downgrade, any version pin replaced by a range
+        (supply-chain risk), any new warning added to NoWarn without a comment
+        explaining why, and any change to package metadata or versioning.
+
+    # ---------------------------------------------------------------
+    # Medium — remaining library code
+    # ---------------------------------------------------------------
+    - path: "{Okta.AuthFoundation,Okta.OAuth2}/**/*.cs"
+      instructions: |
+        Review Tier: Medium (unless covered by a more specific rule above).
+        Per project convention: major types take interface dependencies so they
+        stay swappable; when wrapping or re-throwing an error, pass the original
+        message through rather than prefixing it. Flag async methods that block on
+        a Task, public mutable state, and new public members without XML doc
+        comments.
+
+    # ---------------------------------------------------------------
+    # Low — tests, samples
+    # ---------------------------------------------------------------
+    - path: "{Okta.Client.Sdk.Tests,Okta.Client.Sdk.E2ETests}/**"
+      instructions: |
+        Review Tier: Low. Unit and end-to-end tests.
+        Flag: hard-coded credentials or real tenant URLs (tests should use
+        example.okta.com and placeholder IDs), a test gated behind
+        WindowsFact/LinuxFact/KeyringFact/E2EFact when it is not actually
+        platform- or credential-specific, a skip without a stated reason, a test
+        asserting a platform default rather than the behavior under test, and new
+        functionality shipped without a test in the same PR.
+
+    - path: "Samples/**"
+      instructions: |
+        Review Tier: Low. Sample applications. Skim for real client IDs, secrets,
+        or tenant URLs, and for tokens written to disk unprotected. If a sample
+        works around an SDK gap instead of the SDK exposing a fix, flag it.
+
+    # ---------------------------------------------------------------
+    # Very Low — docs and repository configuration
+    # ---------------------------------------------------------------
+    - path: "**/*.md"
+      instructions: |
+        Review Tier: Very Low, except CHANGELOG.md.
+        Check for typos, broken links, and stale API references after a signature
+        change. For CHANGELOG.md specifically: flag any entry describing a fix for
+        a bug that never shipped in a released version, which should be omitted
+        rather than listed.
+
+    - path: "{.editorconfig,.gitignore,.gitattributes,NOTICE,LICENSE}"
+      instructions: |
+        Review Tier: Very Low. Editor and VCS configuration, license and notice
+        files. Flag a NOTICE that no longer lists a dependency the project
+        actually ships, and any edit to LICENSE that diverges from the canonical
+        Apache-2.0 text.
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      - ".github/CONTRIBUTING.md"
+      - "CLAUDE.md"
+  learnings:
+    scope: "auto"
